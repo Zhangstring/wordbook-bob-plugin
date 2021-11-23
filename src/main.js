@@ -6,7 +6,8 @@
 var EUDIC_WORD_BOOK_ID
 var YOUDAO_ADD_WORD_URL = "http://dict.youdao.com/wordbook/ajax";
 var EUDIC_ADD_WORD_URL = "https://api.frdic.com/api/open/v1/studylist/words";
-
+var SHANBAY_GET_WORD_URL = "https://apiv3.shanbay.com/abc/words/senses?vocabulary_content="
+var SHANBAY_ADD_WORD_URL = "https://apiv3.shanbay.com/wordscollection/words"
 function buildResult(res) {
     var result = {
         "from": "en",
@@ -62,6 +63,8 @@ function addWord(selectDict, authorization, word, completion) {
         } else {
             queryEudicWordbookIds(authorization, completion)
         }
+    } else if (selectDict == 3) {
+        addWordShanbay(authorization, word, completion)
     }
 }
 
@@ -145,4 +148,40 @@ function queryEudicWordbookIds(token, completion) {
             }
         }
     });
+}
+
+function addWordShanbay(cookie, word, completion) {
+    $http.get({
+        url: SHANBAY_GET_WORD_URL + encodeURIComponent(word),
+        header: {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 11_1_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36',
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Encoding': 'gzip, deflate',
+            'Accept-Language': 'zh-CN,zh;q=0.9',
+            "Cookie": `auth_token=${cookie}`
+        },
+        handler: function (res) {
+            if(res.data.id) {
+                $http.post({
+                    url: SHANBAY_ADD_WORD_URL,
+                    header: {
+                        "Cookie": `auth_token=${cookie}`,
+                        'Content-Type': 'application/json',
+                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 11_1_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36'
+                    },
+                    body: {
+                        vocab_id: res.data.id,
+                        business_id: 6
+                    },
+                    handler: function (res1) {
+                        completion({'result': buildResult(word + "添加单词本成功")});
+                    }
+                });
+            } else {
+                completion({'result': buildResult(JSON.stringify(res.data))});
+            }
+        }
+    })
+    
 }
